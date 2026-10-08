@@ -31,11 +31,11 @@ export async function POST(request: Request) {
     `;
 
     // 1. Extract text from PDF
-    const pdfParseModule = await import('pdf-parse');
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const doc = new pdfParseModule.PDFParse(uint8Array);
-    await doc.load();
-    const pdfText = await doc.getText();
+    const pdfParseModule = await import('pdf-parse/lib/pdf-parse.js');
+    const pdfParse = pdfParseModule.default || pdfParseModule;
+    const pdfBuffer = Buffer.from(arrayBuffer);
+    const data = await pdfParse(pdfBuffer);
+    const pdfText = data.text;
     
     // 2. Query Groq
     const groqPrompt = prompt + "\n\nHere is the document text:\n" + pdfText;
