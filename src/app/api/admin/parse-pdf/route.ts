@@ -19,10 +19,10 @@ export async function POST(request: Request) {
     const prompt = `
       You are an expert educational content parser.
       Extract up to 25 multiple choice questions from this document. If the document has fewer than 25 questions, extract all of them.
-      Return the output strictly as a valid JSON array of objects.
-      Do NOT include any markdown formatting like \`\`\`json. Just output the raw JSON array.
+      Return the output strictly as a valid JSON object.
+      The JSON object MUST have a single key called "questions" which contains the array of objects.
       
-      Format of each object must be:
+      Format of each object inside the "questions" array must be:
       {
         "q": "The exact question text",
         "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
@@ -46,9 +46,10 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
+        model: 'qwen/qwen3.8-27b',
         messages: [{ role: 'user', content: groqPrompt }],
-        temperature: 0.2
+        temperature: 0.2,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -60,8 +61,12 @@ export async function POST(request: Request) {
     const groqData = await groqRes.json();
     const responseText = groqData.choices[0].message.content;
     
+    // Sometimes it includes markdown blocks, we remove them
     const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const jsonResult = JSON.parse(cleaned);
+    let parsedJson = JSON.parse(cleaned);
+    
+    // Handle both cases: { questions: [...] } or just [...]
+    const jsonResult = parsedJson.questions || parsedJson;
 
     return NextResponse.json({ questions: jsonResult });
 
