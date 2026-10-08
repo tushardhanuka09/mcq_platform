@@ -56,12 +56,11 @@ export async function POST(request: Request) {
     } catch (e: any) {
       console.warn("Gemini Vision API Error, falling back to Gemini Text API:", e);
       try {
-        const pdfParseModule = (await import('pdf-parse')) as any;
-        const pdfParse = pdfParseModule.default || pdfParseModule;
-        // pdf-parse needs a Buffer
-        const pdfBuffer = Buffer.from(arrayBuffer);
-        const pdfData = await pdfParse(pdfBuffer);
-        const pdfText = pdfData.text;
+        const pdfParseModule = await import('pdf-parse');
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const doc = new pdfParseModule.PDFParse(uint8Array);
+        await doc.load();
+        const pdfText = await doc.getText();
 
         // Fallback to Gemini Text-Only API (avoids 503 Vision API outages)
         const fallbackPrompt = prompt + "\n\nHere is the document text:\n" + pdfText;
