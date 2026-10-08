@@ -1,0 +1,15 @@
+{
+  "name": "sumitian-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Local WhatsApp Bot that listens to Supabase and sends scorecards",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.5",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  }
+}

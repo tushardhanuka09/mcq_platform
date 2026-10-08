@@ -1,0 +1,30 @@
+{
+  "7717739501": {
+    "id": "mock-7717739501",
+    "fullName": "Tushar",
+    "mobile": "7717739501",
+    "classLevel": "11",
+    "role": "student"
+  },
+  "7717739503": {
+    "id": "mock-7717739503",
+    "fullName": "Tushar",
+    "mobile": "7717739503",
+    "classLevel": "11",
+    "role": "student"
+  },
+  "7717739504": {
+    "id": "mock-7717739504",
+    "fullName": "Tushar",
+    "mobile": "7717739504",
+    "classLevel": "9",
+    "role": "student"
+  },
+  "7717739505": {
+    "id": "mock-7717739505",
+    "fullName": "Tushar",
+    "mobile": "7717739505",
+    "classLevel": "11",
+    "role": "student"
+  }
+}
