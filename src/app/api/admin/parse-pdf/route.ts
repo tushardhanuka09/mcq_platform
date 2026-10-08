@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       jsonResult = JSON.parse(cleaned);
     } catch (e: any) {
-      console.warn("Gemini API Error, falling back to local Ollama:", e);
+      console.warn("Gemini Vision API Error, falling back to Gemini Text API:", e);
       try {
         const pdfParseModule = (await import('pdf-parse')) as any;
         const pdfParse = pdfParseModule.default || pdfParseModule;
@@ -63,27 +63,15 @@ export async function POST(request: Request) {
         const pdfData = await pdfParse(pdfBuffer);
         const pdfText = pdfData.text;
 
-        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama3',
-            prompt: prompt + "\n\nHere is the document text:\n" + pdfText,
-            stream: false,
-            format: 'json'
-          })
-        });
-
-        if (!ollamaRes.ok) {
-          throw new Error("Local Ollama also failed or is not running.");
-        }
-
-        const ollamaData = await ollamaRes.json();
-        const cleaned = ollamaData.response.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Fallback to Gemini Text-Only API (avoids 503 Vision API outages)
+        const fallbackPrompt = prompt + "\n\nHere is the document text:\n" + pdfText;
+        const fallbackResult = await model.generateContent(fallbackPrompt);
+        const responseTextFallback = fallbackResult.response.text();
+        const cleaned = responseTextFallback.replace(/```json/g, '').replace(/```/g, '').trim();
         jsonResult = JSON.parse(cleaned);
-      } catch (ollamaErr: any) {
-        console.error("Ollama Fallback Error:", ollamaErr);
-        throw new Error("Both Gemini and local Ollama failed. Gemini Error: " + e.message);
+      } catch (fallbackErr: any) {
+        console.error("Gemini Text Fallback Error:", fallbackErr);
+        throw new Error("Both Gemini Vision and Gemini Text fallback failed. Original Error: " + e.message);
       }
     }
 
