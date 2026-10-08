@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: Request) {
   try {
@@ -10,13 +9,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'GEMINI_API_KEY is missing in .env.local file!' }, { status: 500 });
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      return NextResponse.json({ error: 'GROQ_API_KEY is missing in environment variables!' }, { status: 500 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.8-flash" });
+    // Initialize Groq instead of Gemini
 
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = Buffer.from(arrayBuffer).toString('base64');
@@ -38,44 +36,43 @@ export async function POST(request: Request) {
     `;
 
     let jsonResult;
-    try {
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        }
-      ]);
+      // We will parse the PDF to text first, then send to Groq
+      const pdfParseModule = await import('pdf-parse');
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const doc = new pdfParseModule.PDFParse(uint8Array);
+      await doc.load();
+      const pdfText = await doc.getText();
+      
+      const groqPrompt = prompt + "\n\nHere is the document text:\n" + pdfText;
 
-      const responseText = result.response.text();
-      // Clean up any markdown the LLM might have included
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          messages: [{ role: 'user', content: groqPrompt }],
+          temperature: 0.2
+        })
+      });
+
+      if (!groqRes.ok) {
+        const errorText = await groqRes.text();
+        throw new Error("Groq API Error: " + errorText);
+      }
+
+      const groqData = await groqRes.json();
+      const responseText = groqData.choices[0].message.content;
+      
       const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       jsonResult = JSON.parse(cleaned);
     } catch (e: any) {
-      console.warn("Gemini Vision API Error, falling back to Gemini Text API:", e);
-      try {
-        const pdfParseModule = await import('pdf-parse');
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const doc = new pdfParseModule.PDFParse(uint8Array);
-        await doc.load();
-        const pdfText = await doc.getText();
-
-        // Fallback to Gemini Text-Only API (avoids 503 Vision API outages)
-        const fallbackPrompt = prompt + "\n\nHere is the document text:\n" + pdfText;
-        const fallbackResult = await model.generateContent(fallbackPrompt);
-        const responseTextFallback = fallbackResult.response.text();
-        const cleaned = responseTextFallback.replace(/```json/g, '').replace(/```/g, '').trim();
-        jsonResult = JSON.parse(cleaned);
-      } catch (fallbackErr: any) {
-        console.error("Gemini Text Fallback Error:", fallbackErr);
-        throw new Error("Both Gemini Vision and Gemini Text fallback failed. Original Error: " + e.message);
-      }
+      console.error("Parse Error:", e);
+      throw new Error("Failed to parse MCQs using Groq AI. Error: " + e.message);
     }
-
     return NextResponse.json({ questions: jsonResult });
-
 
   } catch (error: any) {
     console.error("PDF Parse Error:", error);
