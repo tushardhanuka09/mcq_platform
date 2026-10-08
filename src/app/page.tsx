@@ -8,7 +8,7 @@ export default function Home() {
       
       <div className="container animate-fade-in" style={{ paddingTop: '5rem', paddingBottom: '5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
         <div style={{ marginBottom: '2rem', display: 'inline-block' }}>
-          <img src="/logo.jpg" alt="Purnima Classes" style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px' }} />
+          <img src="/logo.jpg" alt="Purnima Classes" style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px', mixBlendMode: 'multiply' }} />
         </div>
 
         <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
